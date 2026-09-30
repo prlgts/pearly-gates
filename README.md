@@ -23,6 +23,32 @@ from the tensor cores up: **+2.3 % over the fastest other miners** on a hot card
 - Other RTX 50-series cards run the same code but are not tuned for yet: run `prlgts bench` to see
   what yours does
 
+## Live display
+
+<p align="center"><img src="assets/tui.png" alt="PearlyGates status screen" width="100%"></p>
+
+In a terminal, PearlyGates shows a live display. Switch tabs with a key:
+
+| Key | Tab | Shows |
+|---|---|---|
+| `s` | **Status** | hashrate (10 s, 1 min, 15 min, session), pool connection, current job, shares, GPU power, clock, temperature and fan, dev-fee countdown, recent events |
+| `h` | **History** | mining events: shares found, accepted and rejected, new jobs, dev fee (`f` filters, arrow keys scroll) |
+| `p` | **Performance** | hashrate chart over the last 24 hours, 7 days, 1 month, 3 months or 1 year (`1`–`5`), with shares, average power and efficiency |
+| `l` | **Log** | the miner's own messages: start-up, selftest, pool connections, warnings and errors (`f` shows problems only) |
+| `space` | | pause / resume |
+| `q` | | quit |
+
+The display opens as soon as the miner starts and shows each start-up step (settings, driver, GPU
+selftest, pool) until mining begins. The hashrate history is saved next to the miner
+(`prlgts-history-<card>.csv`, about 1 MB a year).
+With the output redirected to a file, on HiveOS, or with `--no-tui`, the miner prints plain log
+lines as before.
+
+**Pause:** `space` frees the GPU completely (its memory and the CUDA context) in about a second, for
+a game or other GPU work; `space` again resumes. `./prlgts pause` and `./prlgts resume` do the same
+from another shell (for a service or over SSH); a pause lasts until you resume, also over a
+restart. Paused time does not count toward the dev fee.
+
 ## Installation
 
 #### Servers
@@ -58,24 +84,35 @@ instead of 176 KB), so fewer shares go stale there.
 
 ```sh
 ## Download
-wget -c https://github.com/prlgts/pearly-gates/releases/download/v0.2.1/pearly-gates-0.2.1-linux-x86_64.tar.gz \
-&& tar xzf pearly-gates-0.2.1-linux-x86_64.tar.gz \
-&& cd pearly-gates-0.2.1-linux-x86_64
+wget -c https://github.com/prlgts/pearly-gates/releases/download/v0.3.0/pearly-gates-0.3.0-linux-x86_64.tar.gz \
+&& tar xzf pearly-gates-0.3.0-linux-x86_64.tar.gz \
+&& cd pearly-gates-0.3.0-linux-x86_64
 
 ## Check this machine (driver, libraries, GPU selftest) without mining
-./start-miner.sh --check
+./prlgts check
 
-## Set your pool user: edit the USER line (and POOL / WORKER if you like)
-nano start-miner.sh
+## Set your pool user: the user line (and pool / worker if you like)
+nano prlgts.conf
 
 ## Start
-./start-miner.sh
+./prlgts
 ```
 
-`start-miner.sh` runs the selftest, then mines and restarts the miner if it ever exits. It uses
-the first GPU; with more than one, run a copy per GPU with `EXTRA="--device 1"` and so on, or use
-the HiveOS package below, which does that for you.
-`Ctrl+C` stops it. To keep a log: `./start-miner.sh 2>&1 | tee -a miner.log`.
+`prlgts` reads `prlgts.conf`, checks the driver and the GPU (selftest), then mines, and starts
+again by itself after a GPU error. It uses the first GPU; with more than one, run a copy of the
+folder per GPU with `device = 1` and so on in its `prlgts.conf`, or use the HiveOS package below,
+which does that for you. `q` or `Ctrl+C` stops it. To keep a log (plain lines instead of the live
+display): `./prlgts 2>&1 | tee -a miner.log`.
+
+To start it at boot, the package includes a systemd unit, `prlgts.service`, with the steps in its
+comments:
+
+```sh
+sudo mv pearly-gates-0.3.0-linux-x86_64 /opt/pearly-gates
+sudo cp /opt/pearly-gates/prlgts.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now prlgts
+journalctl -u prlgts -f                 # the miner's output
+```
 
 #### HiveOS (NVIDIA)
 
@@ -84,7 +121,7 @@ Create a flight sheet with a **Custom** miner and set its miner config to:
 | Field | Value |
 |---|---|
 | Miner name | `pearlygates` (filled in from the installation URL) |
-| Installation URL | `https://github.com/prlgts/pearly-gates/releases/download/v0.2.1/pearlygates-0.2.1.tar.gz` |
+| Installation URL | `https://github.com/prlgts/pearly-gates/releases/download/v0.3.0/pearlygates-0.3.0.tar.gz` |
 | Hash algorithm | `pearlhash` |
 | Wallet and worker template | `%WAL%.%WORKER_NAME%` |
 | Pool URL | `stratum+ssl://prl-us.kryptex.network:8048` (or a server above) |
@@ -108,7 +145,7 @@ hashrate, shares, temperatures and fans to the HiveOS dashboard. Or import this 
                 "miner": "pearlygates",
                 "template": "%WAL%.%WORKER_NAME%",
                 "algo": "pearlhash",
-                "install_url": "https://github.com/prlgts/pearly-gates/releases/download/v0.2.1/pearlygates-0.2.1.tar.gz",
+                "install_url": "https://github.com/prlgts/pearly-gates/releases/download/v0.3.0/pearlygates-0.3.0.tar.gz",
                 "user_config": ""
             }
         }
@@ -121,15 +158,19 @@ Logs on the rig: `/var/log/miner/custom/pearlygates.log` (all GPUs) and
 
 #### Windows
 
-1. Download and unzip `pearly-gates-0.2.1-windows-x86_64.zip`.
-2. Right-click `start-miner.bat` → Edit, then set:
-   - `USER`: your Kryptex username (`krxXXXXXXX`) or PRL address
-   - `WORKER`: a name for this rig (e.g. `rig01`)
-   - `POOL`: leave as `stratum+ssl://prl-us.kryptex.network:8048` or pick a server above
-3. Double-click `start-miner.bat`.
+1. Download and unzip `pearly-gates-0.3.0-windows-x86_64.zip`.
+2. Right-click `prlgts.conf` → Edit (or open it in Notepad), then set:
+   - `user`: your Kryptex username (`krxXXXXXXX`) or PRL address
+   - `worker`: a name for this rig (e.g. `rig01`)
+   - `pool`: leave as `stratum+ssl://prl-us.kryptex.network:8048` or pick a server above
+3. Double-click `prlgts.exe`.
 
-The launcher runs the selftest, then restarts the miner 5 seconds after it exits. Close the
-window (or press `Ctrl+C`) to stop.
+The miner checks the driver and the GPU (selftest) in its window, then mines, and starts again by
+itself after a GPU error. Press `q`, close the window or press `Ctrl+C` to stop.
+
+To start it at every logon, run `prlgts.exe autostart on` in the folder (a Command Prompt or
+PowerShell there): it becomes a Startup app that opens minimized, switchable in Settings > Apps >
+Startup. `prlgts.exe autostart off` removes it.
 
 #### Manual / advanced run
 
@@ -137,7 +178,7 @@ window (or press `Ctrl+C`) to stop.
 ./prlgts selftest                                   # must print SELF-TEST PASS
 ./prlgts mine --pool stratum+ssl://prl-us.kryptex.network:8048 --user krxXXXXXXX --worker rig01
 ./prlgts bench --seconds 30                         # offline hashrate, power and clocks
-./prlgts                                            # all options
+./prlgts help                                       # all options
 ```
 
 On Windows use `prlgts.exe` in the same way.
@@ -151,13 +192,13 @@ On Windows use `prlgts.exe` in the same way.
 | System | glibc 2.28+: Ubuntu 20.04+, Debian 10+, RHEL / Rocky / Alma 8+, Fedora, Arch, openSUSE Leap 15+ (not musl-based Alpine) | Windows 10 or 11 |
 | Anything else | Nothing: the CUDA runtime is built in | Nothing: no Visual C++ redistributable needed |
 
-`./start-miner.sh --check` tells you what is missing and how to install it on your distro.
+`./prlgts check` tells you what is missing and how to install it on your distro.
 
 ## GPU power and clock settings
 
 `mine`, `bench` and `gpuset` take power and clock settings, applied through the driver and restored
-when the miner exits. They need root on Linux (`sudo ./start-miner.sh`) or *Run as administrator*
-on Windows; put them on the `EXTRA` line of the start script.
+when the miner exits. They need root on Linux (`sudo ./prlgts`) or *Run as administrator*
+on Windows; put them in `prlgts.conf` (`gpu-plimit = 500`) or on the command line.
 
 ```sh
 --gpu-plimit 500      # board power limit, W
@@ -173,7 +214,7 @@ overclock shows up as differing tiles instead of silently lost shares.
 
 ## Verify your download
 
-Each release lists the SHA-256 of both packages (`SHA256SUMS`):
+Each release lists the SHA-256 of every package (`SHA256SUMS`):
 
 ```sh
 sha256sum -c SHA256SUMS --ignore-missing
