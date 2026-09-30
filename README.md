@@ -7,10 +7,6 @@ from the tensor cores up: **+2.3 % over the fastest other miners** on a hot card
 
 ## Measured performance
 
-Gigabyte AORUS GeForce RTX 5090 at stock settings (600 W power limit, stock clocks), mining on
-Kryptex (`prl-us`), PearlyGates 0.2.0 against the fastest other miner we know of, on the same card
-on the same day. The miners took turns, 3 runs each, every run starting from a card cooled to 45 °C.
-
 | RTX 5090 | PearlyGates | Fastest other miner | |
 |---|---:|---:|---:|
 | **Cold** (first 2 minutes) | **420.9 TH/s** | 414.1 TH/s | **+1.6 %** |
@@ -18,9 +14,14 @@ on the same day. The miners took turns, 3 runs each, every run starting from a c
 | Clock when hot | 2617 MHz | 2554 MHz | |
 | Dev fee | 2 % | 2 % | |
 
-Hashrates are each miner's own reading (tera multiply-accumulates per second, the unit pools use).
-Our three hot runs were 418.0, 417.9 and 418.1 TH/s. Other RTX 50-series cards run the same code
-but are not tuned for yet: run `prlgts bench` to see what yours does.
+- Gigabyte AORUS GeForce RTX 5090 at stock settings (600 W power limit, stock clocks)
+- Mining on Kryptex (`prl-us`): PearlyGates 0.2.0 against the fastest other miner we know of, on the
+  same card on the same day
+- The miners took turns, 3 runs each, every run starting from a card cooled to 45 °C
+- Hashrates are each miner's own reading (tera multiply-accumulates per second, the unit pools use)
+- Our three hot runs: 418.0, 417.9 and 418.1 TH/s
+- Other RTX 50-series cards run the same code but are not tuned for yet: run `prlgts bench` to see
+  what yours does
 
 ## Installation
 
@@ -57,9 +58,9 @@ instead of 176 KB), so fewer shares go stale there.
 
 ```sh
 ## Download
-wget -c https://github.com/prlgts/pearly-gates/releases/download/v0.2.0/pearly-gates-0.2.0-linux-x86_64.tar.gz \
-&& tar xzf pearly-gates-0.2.0-linux-x86_64.tar.gz \
-&& cd pearly-gates-0.2.0-linux-x86_64
+wget -c https://github.com/prlgts/pearly-gates/releases/download/v0.2.1/pearly-gates-0.2.1-linux-x86_64.tar.gz \
+&& tar xzf pearly-gates-0.2.1-linux-x86_64.tar.gz \
+&& cd pearly-gates-0.2.1-linux-x86_64
 
 ## Check this machine (driver, libraries, GPU selftest) without mining
 ./start-miner.sh --check
@@ -83,7 +84,7 @@ Create a flight sheet with a **Custom** miner and set its miner config to:
 | Field | Value |
 |---|---|
 | Miner name | `pearlygates` (filled in from the installation URL) |
-| Installation URL | `https://github.com/prlgts/pearly-gates/releases/download/v0.2.0/pearlygates-0.2.0.tar.gz` |
+| Installation URL | `https://github.com/prlgts/pearly-gates/releases/download/v0.2.1/pearlygates-0.2.1.tar.gz` |
 | Hash algorithm | `pearlhash` |
 | Wallet and worker template | `%WAL%.%WORKER_NAME%` |
 | Pool URL | `stratum+ssl://prl-us.kryptex.network:8048` (or a server above) |
@@ -107,7 +108,7 @@ hashrate, shares, temperatures and fans to the HiveOS dashboard. Or import this 
                 "miner": "pearlygates",
                 "template": "%WAL%.%WORKER_NAME%",
                 "algo": "pearlhash",
-                "install_url": "https://github.com/prlgts/pearly-gates/releases/download/v0.2.0/pearlygates-0.2.0.tar.gz",
+                "install_url": "https://github.com/prlgts/pearly-gates/releases/download/v0.2.1/pearlygates-0.2.1.tar.gz",
                 "user_config": ""
             }
         }
@@ -120,7 +121,7 @@ Logs on the rig: `/var/log/miner/custom/pearlygates.log` (all GPUs) and
 
 #### Windows
 
-1. Download and unzip `pearly-gates-0.2.0-windows-x86_64.zip`.
+1. Download and unzip `pearly-gates-0.2.1-windows-x86_64.zip`.
 2. Right-click `start-miner.bat` → Edit, then set:
    - `USER`: your Kryptex username (`krxXXXXXXX`) or PRL address
    - `WORKER`: a name for this rig (e.g. `rig01`)
