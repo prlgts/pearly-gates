@@ -39,6 +39,20 @@ stratum+ssl://prl-br.kryptex.network:8048   # South America
 
 Your pool user is your Kryptex username (`krxXXXXXXX`) or your PRL address.
 
+#### Other pools
+
+`--pool` takes any `HOST:PORT`, plain TCP or TLS (`stratum+ssl://`), and `--user` your PRL address
+(`prl1...`) with the rig name after a dot or in `--worker`. Pick the pool's stratum format with
+`--dialect`:
+
+| `--dialect` | Pools | Status |
+|---|---|---|
+| `kryptex` (default) | Kryptex | tested |
+| `luckypool` | LuckyPool | not yet tested on the live pool |
+
+A pool that speaks neither format fails at login. Kryptex also takes compressed proofs (5 KB
+instead of 176 KB), so fewer shares go stale there.
+
 #### Linux (NVIDIA)
 
 ```sh
@@ -168,7 +182,8 @@ sha256sum -c SHA256SUMS --ignore-missing
 
 PearlyGates keeps a 2 % dev fee, the same as the fastest other miners: about 1 minute in every 50
 is mined for the developer. The miner prints the fee at start and marks each fee period in its
-output.
+output. On pools other than Kryptex, the fee minute runs on a separate connection to Kryptex, and
+your own pool connection stays open.
 
 ## License
 
