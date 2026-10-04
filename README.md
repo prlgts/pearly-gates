@@ -36,6 +36,7 @@ In a terminal, PearlyGates shows a live display. Switch tabs with a key:
 | `p` | **Performance** | hashrate chart over the last 24 hours, 7 days, 1 month, 3 months or 1 year (`1`–`5`), with shares, average power and efficiency |
 | `l` | **Log** | the miner's own messages: start-up, selftest, pool connections, warnings and errors (`f` shows problems only) |
 | `space` | | pause / resume |
+| `w` | | next power setting (RTX 5090, see [Power settings](#power-settings-rtx-5090)) |
 | `q` | | quit |
 
 The display opens as soon as the miner starts and shows each start-up step (settings, driver, GPU
@@ -84,9 +85,9 @@ instead of 176 KB), so fewer shares go stale there.
 
 ```sh
 ## Download
-wget -c https://github.com/prlgts/pearly-gates/releases/download/v0.3.0/pearly-gates-0.3.0-linux-x86_64.tar.gz \
-&& tar xzf pearly-gates-0.3.0-linux-x86_64.tar.gz \
-&& cd pearly-gates-0.3.0-linux-x86_64
+wget -c https://github.com/prlgts/pearly-gates/releases/download/v0.4.0/pearly-gates-0.4.0-linux-x86_64.tar.gz \
+&& tar xzf pearly-gates-0.4.0-linux-x86_64.tar.gz \
+&& cd pearly-gates-0.4.0-linux-x86_64
 
 ## Check this machine (driver, libraries, GPU selftest) without mining
 ./prlgts check
@@ -98,6 +99,10 @@ nano prlgts.conf
 ./prlgts
 ```
 
+The package runs from its folder as it is. `./install.sh` copies it to `~/.local/share/pearly-gates`
+and adds the `prlgts` command (no root; `./install.sh --uninstall` removes it); `./install.sh --helper`
+also sets up the root helper the [power settings](#power-settings-rtx-5090) need (sudo once).
+
 `prlgts` reads `prlgts.conf`, checks the driver and the GPU (selftest), then mines, and starts
 again by itself after a GPU error. It uses the first GPU; with more than one, run a copy of the
 folder per GPU with `device = 1` and so on in its `prlgts.conf`, or use the HiveOS package below,
@@ -108,7 +113,7 @@ To start it at boot, the package includes a systemd unit, `prlgts.service`, with
 comments:
 
 ```sh
-sudo mv pearly-gates-0.3.0-linux-x86_64 /opt/pearly-gates
+sudo mv pearly-gates-0.4.0-linux-x86_64 /opt/pearly-gates
 sudo cp /opt/pearly-gates/prlgts.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl enable --now prlgts
 journalctl -u prlgts -f                 # the miner's output
@@ -121,7 +126,7 @@ Create a flight sheet with a **Custom** miner and set its miner config to:
 | Field | Value |
 |---|---|
 | Miner name | `pearlygates` (filled in from the installation URL) |
-| Installation URL | `https://github.com/prlgts/pearly-gates/releases/download/v0.3.0/pearlygates-0.3.0.tar.gz` |
+| Installation URL | `https://github.com/prlgts/pearly-gates/releases/download/v0.4.0/pearlygates-0.4.0.tar.gz` |
 | Hash algorithm | `pearlhash` |
 | Wallet and worker template | `%WAL%.%WORKER_NAME%` |
 | Pool URL | `stratum+ssl://prl-us.kryptex.network:8048` (or a server above) |
@@ -145,7 +150,7 @@ hashrate, shares, temperatures and fans to the HiveOS dashboard. Or import this 
                 "miner": "pearlygates",
                 "template": "%WAL%.%WORKER_NAME%",
                 "algo": "pearlhash",
-                "install_url": "https://github.com/prlgts/pearly-gates/releases/download/v0.3.0/pearlygates-0.3.0.tar.gz",
+                "install_url": "https://github.com/prlgts/pearly-gates/releases/download/v0.4.0/pearlygates-0.4.0.tar.gz",
                 "user_config": ""
             }
         }
@@ -158,7 +163,7 @@ Logs on the rig: `/var/log/miner/custom/pearlygates.log` (all GPUs) and
 
 #### Windows
 
-1. Download and unzip `pearly-gates-0.3.0-windows-x86_64.zip`.
+1. Download and unzip `pearly-gates-0.4.0-windows-x86_64.zip`.
 2. Right-click `prlgts.conf` → Edit (or open it in Notepad), then set:
    - `user`: your Kryptex username (`krxXXXXXXX`) or PRL address
    - `worker`: a name for this rig (e.g. `rig01`)
@@ -167,6 +172,10 @@ Logs on the rig: `/var/log/miner/custom/pearlygates.log` (all GPUs) and
 
 The miner checks the driver and the GPU (selftest) in its window, then mines, and starts again by
 itself after a GPU error. Press `q`, close the window or press `Ctrl+C` to stop.
+
+Or double-click `install.cmd`: it copies the miner to `%LOCALAPPDATA%\Programs\PearlyGates`, asks for
+your pool user and puts `prlgts` on your PATH, so `prlgts` starts it in any new terminal. No
+administrator rights, no shortcuts; running it again is the update, `install.cmd -Uninstall` removes it.
 
 To start it at every logon, run `prlgts.exe autostart on` in the folder (a Command Prompt or
 PowerShell there): it becomes a Startup app that opens minimized, switchable in Settings > Apps >
@@ -211,6 +220,46 @@ on Windows; put them in `prlgts.conf` (`gpu-plimit = 500`) or on the command lin
 
 `mine --check 64` re-runs every 64th grid and compares every hash tile, so an unstable undervolt or
 overclock shows up as differing tiles instead of silently lost shares.
+
+## Power settings (RTX 5090)
+
+`power = NAME` in `prlgts.conf` picks a tested operating point: a board power limit with a clock lock
+and an undervolt offset. `prlgts power` lists them, and the package's `prlgts.conf` starts at `500`:
+
+| `power =` | limit, clock lock, offset | TH/s | profit against stock, per month |
+|---|---|---:|---:|
+| `stock` | the card's own settings | 412–416 at 600 W | — |
+| `600` | 600 W, 2750 MHz, +400 | 425 | **+$9.7** |
+| `590` | 590 W, 2750 MHz, +400 | 421 | +$8.4 |
+| `580` | 580 W, 2750 MHz, +400 | 415 | +$5.6 |
+| `570` | 570 W, 2750 MHz, +400 | 410 | +$3.3 |
+| `560` | 560 W, 2750 MHz, +400 | 408 | +$3.5 |
+| `540` (`550` is the same point) | 540 W, 2550 MHz, +400 | 405 | +$6.1 |
+| `530` | 530 W, 2550 MHz, +400 | 401 | +$4.3 |
+| `520` | 520 W, 2550 MHz, +400 | 399 | +$4.7 |
+| `510` | 510 W, 2500 MHz (draws ~507 W), +400 | 395 | +$3.2 |
+| `500` | 500 W, 2500 MHz, +400 | 392 | +$1.1 |
+| `490` | 490 W, 2500 MHz, +400 | 382 | −$2.5 |
+| `475` | 475 W, 2500 MHz, +400 | 378 | −$4.2 |
+| `450` | 450 W, 2500 MHz, +400 | 364 | −$10.4 |
+
+- Measured on one RTX 5090 on Linux, mining with `check = 32` and no differing tiles, five minutes
+  per setting; profit at ~$0.25/kWh and $0.0262 per TH/s per day. On Windows, `500` and `540` have had
+  a short run each (`500`: 387–394 TH/s, no differing tiles).
+- `w` in the display steps to the next setting; `prlgts power 540` does the same from another shell.
+  Either way the choice is saved to `prlgts.conf`.
+- The settings are on only while the GPU is mining. A small guard process (a second `prlgts`) puts
+  them on once the card is loaded and takes them off before a pause, a lost pool connection or the
+  exit, and when the miner dies. A clock offset left on an idle RTX 5090 can hang the card.
+- **Linux:** the guard needs root. `./install.sh --helper` sets that up once, or start the miner with
+  `sudo ./prlgts`.
+- **Windows:** start `prlgts` from an Administrator terminal. A double-clicked or autostarted miner is
+  not elevated.
+- Without those rights, and on other cards, the miner says so in its Log tab and mines at the card's
+  own settings. `power = stock` turns the feature off.
+- Every card's silicon differs. Run a setting with `check = 64` for a day (about 1 % of the hashrate)
+  before trusting it: one that is too much for your card shows up as differing tiles.
+- `gpu-plimit`, `gpu-cclock` and `gpu-coffset` given beside `power` replace that part of the setting.
 
 ## Verify your download
 
